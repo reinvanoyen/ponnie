@@ -2,14 +2,12 @@
 
 const util = {
   isRefAttribute(name) {
-    return (name === 'ref');
+    return (name === 'p-ref');
   },
   isEventAttribute(name) {
-
-    return /^on/.test(name);
+    return /^p-/.test(name);
   },
   getEventNameFromAttribute(name) {
-
     return name.slice(2).toLowerCase();
   }
 };

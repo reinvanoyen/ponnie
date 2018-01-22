@@ -4,13 +4,15 @@ const source = require('vinyl-source-stream');
 
 gulp.task('build', () => {
 
-  return browserify('index.js')
+  return browserify('example/index.js')
     .transform('babelify', {
-      plugins: ['transform-react-jsx', {pragma: 'h'}],
-      presets: ['env']
+      presets: ['env'],
+      plugins: [
+          ['transform-react-jsx', {pragma: 'ponnie.vnode'}]
+      ]
     })
     .bundle()
     .pipe( source('index.js') )
-    .pipe( gulp.dest( 'build' ) )
+    .pipe( gulp.dest( 'example/build' ) )
   ;
 });

@@ -14,14 +14,14 @@ const vdocument = {
 
     Object.keys(attrs).forEach(name => {
 
-      if (util.isEventAttribute(name)) {
+      if (util.isRefAttribute(name)) {
+
+        $currentComponent.refs[attrs[name]] = $el;
+      }
+      else if (util.isEventAttribute(name)) {
 
         const e = attrs[name].bind($currentComponent);
         vdocument.bindEvent($el, util.getEventNameFromAttribute(name), e);
-
-      } else if (util.isRefAttribute(name)) {
-
-        $currentComponent.refs[attrs[name]] = $el;
 
       } else {
 
@@ -29,9 +29,9 @@ const vdocument = {
       }
     });
 
-    node.children.forEach( c => {
+    node.children.forEach(c => {
       $el.appendChild(vdocument.createElement(c, $currentComponent));
-    } );
+    });
 
     return $el;
   },
@@ -43,7 +43,7 @@ const vdocument = {
     }
 
     // is boolean attribute
-    if ( typeof value === 'boolean' ) {
+    if (typeof value === 'boolean') {
       if (!value) {
         return;
       } else {
@@ -60,7 +60,7 @@ const vdocument = {
   },
   removeAttribute: function($target, name, newVal) {
 
-    if ( typeof newVal === 'boolean' ) {
+    if (typeof newVal === 'boolean') {
       $target[name] = false;
     }
 
@@ -72,7 +72,7 @@ const vdocument = {
   },
   isCustomAttribute: function(name) {
 
-    return util.isEventAttribute(name);
+    return util.isRefAttribute(name) || util.isEventAttribute(name);
   },
   bindEvent($target, eventName, func) {
 

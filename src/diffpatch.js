@@ -31,9 +31,8 @@ const diffpatch = {
 
       diffpatch.updateAttributes($parent.childNodes[index], newNode.attrs, oldNode.attrs);
 
-      const newLength = newNode.children.length,
-          oldLength = oldNode.children.length
-      ;
+      const newLength = newNode.children.length;
+      const oldLength = oldNode.children.length;
 
       for (let i = 0; i < newLength || i < oldLength; i++) {
         diffpatch.updateElement($parent.childNodes[index], newNode.children[i], oldNode.children[i], i );
