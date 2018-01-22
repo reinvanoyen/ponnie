@@ -19,6 +19,10 @@ const vdocument = {
         const e = attrs[name].bind($currentComponent);
         vdocument.bindEvent($el, util.getEventNameFromAttribute(name), e);
 
+      } else if (util.isRefAttribute(name)) {
+
+        $currentComponent.refs[attrs[name]] = $el;
+
       } else {
 
         vdocument.setAttribute($el, name, attrs[name]);
@@ -67,9 +71,11 @@ const vdocument = {
     $target.removeAttribute(name);
   },
   isCustomAttribute: function(name) {
+
     return util.isEventAttribute(name);
   },
   bindEvent($target, eventName, func) {
+
     $target.addEventListener(eventName, func);
   }
 };

@@ -11,7 +11,11 @@ const diffpatch = {
   },
   updateElement: function($parent, newNode, oldNode, index = 0) {
 
-    if (!oldNode) {
+    if ( !newNode && !oldNode ) {
+
+      // @PASS do nothing
+
+    } else if (!oldNode) {
 
       $parent.appendChild(vdoc.createElement(newNode, diffpatch.currentComponent));
 
@@ -37,6 +41,7 @@ const diffpatch = {
     }
   },
   updateAttribute: function($target, name, newVal, oldVal) {
+
     if (!newVal) {
       vdoc.removeAttribute($target, name, newVal);
     } else if (!oldVal || newVal !== oldVal) {
@@ -44,6 +49,7 @@ const diffpatch = {
     }
   },
   updateAttributes: function($target, newAttrs, oldAttrs = {}) {
+
     const props = Object.assign({}, newAttrs, oldAttrs);
     Object.keys(props).forEach(name => {
       diffpatch.updateAttribute($target, name, newAttrs[name], oldAttrs[name]);

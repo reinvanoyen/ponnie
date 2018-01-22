@@ -8,8 +8,4 @@ const ponnie = {
   h: h
 };
 
-ponnie.register = (component) => {
-  console.log(component);
-};
-
 export default ponnie;
