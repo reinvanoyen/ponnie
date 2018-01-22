@@ -1,11 +1,11 @@
 "use strict";
 
-import vdom from "./h";
+import vnode from "./h";
 import Component from "./component";
 
 const ponnie = {
   Component: Component,
-  vdom: vdom
+  vnode: vnode
 };
 
 export default ponnie;
