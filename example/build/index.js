@@ -37,20 +37,24 @@ var Component = function () {
 
     this._currentVirtualNode = null;
     this.root = null;
+    this.parent = null;
     this.data = data;
     this.eventListeners = {};
     this.refs = {};
   }
 
   _createClass(Component, [{
+    key: "createElement",
+    value: function createElement() {
+      this.root = document.createElement('div');
+      _diffpatch2.default.patchComponent(this);
+      this.trigger('create');
+      return this.root;
+    }
+  }, {
     key: "mount",
     value: function mount(htmlEl) {
-
-      this.root = document.createElement('div');
-      htmlEl.appendChild(this.root);
-
-      this.patch();
-      this.trigger('mount');
+      htmlEl.appendChild(this.createElement());
     }
   }, {
     key: "unmount",
@@ -61,22 +65,15 @@ var Component = function () {
       this.trigger('unmount');
     }
   }, {
-    key: "patch",
-    value: function patch() {
-
-      _diffpatch2.default.setCurrentComponent(this);
-      var newVirtualNode = this.render();
-      _diffpatch2.default.updateElement(this.root, newVirtualNode, this._currentVirtualNode);
-      this._currentVirtualNode = newVirtualNode;
-      this.trigger('render');
-    }
-  }, {
     key: "update",
     value: function update(data) {
+      var patch = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : true;
 
       Object.assign(this.data, data);
-      this.patch();
       this.trigger('update', { data: data });
+      if (patch) {
+        _diffpatch2.default.patchComponent(this);
+      }
     }
 
     // events
@@ -137,6 +134,8 @@ var _vdoc = require("./vdoc");
 
 var _vdoc2 = _interopRequireDefault(_vdoc);
 
+var _registry = require("./registry");
+
 function _interopRequireDefault(obj) {
   return obj && obj.__esModule ? obj : { default: obj };
 }
@@ -151,28 +150,38 @@ var diffpatch = {
   updateElement: function updateElement($parent, newNode, oldNode) {
     var index = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : 0;
 
-    if (!newNode && !oldNode) {
+    // check if we are updating a component
+    if (oldNode && _registry.TagRegistry.get(oldNode.tag)) {
 
-      // @PASS do nothing
+      var componentInstance = _registry.ComponentRegistry.get(oldNode.componentId);
+      newNode.componentId = oldNode.componentId;
+      componentInstance.update(newNode.attrs);
+    } else {
 
-    } else if (!oldNode) {
+      if (!newNode && !oldNode) {
 
-      $parent.appendChild(_vdoc2.default.createElement(newNode, diffpatch.currentComponent));
-    } else if (!newNode) {
+        // @PASS do nothing
 
-      $parent.removeChild($parent.childNodes[index]);
-    } else if (diffpatch.isDiff(newNode, oldNode)) {
+      } else if (!oldNode) {
 
-      $parent.replaceChild(_vdoc2.default.createElement(newNode, diffpatch.currentComponent), $parent.childNodes[index]);
-    } else if (newNode.tag && $parent) {
+        $parent.appendChild(_vdoc2.default.createElement(newNode, diffpatch.currentComponent));
+      } else if (!newNode) {
 
-      diffpatch.updateAttributes($parent.childNodes[index], newNode.attrs, oldNode.attrs);
+        $parent.removeChild($parent.childNodes[index]);
+      } else if (diffpatch.isDiff(newNode, oldNode)) {
 
-      var newLength = newNode.children.length;
-      var oldLength = oldNode.children.length;
+        $parent.replaceChild(_vdoc2.default.createElement(newNode, diffpatch.currentComponent), $parent.childNodes[index]);
+      } else if (newNode.tag && $parent) {
 
-      for (var i = 0; i < newLength || i < oldLength; i++) {
-        diffpatch.updateElement($parent.childNodes[index], newNode.children[i], oldNode.children[i], i);
+        diffpatch.updateAttributes($parent.childNodes[index], newNode.attrs, oldNode.attrs);
+
+        var newLength = newNode.children.length;
+        var oldLength = oldNode.children.length;
+
+        for (var i = 0; i < newLength || i < oldLength; i++) {
+
+          diffpatch.updateElement($parent.childNodes[index], newNode.children[i], oldNode.children[i], i);
+        }
       }
     }
   },
@@ -194,12 +203,21 @@ var diffpatch = {
   },
   isDiff: function isDiff(node1, node2) {
     return (typeof node1 === "undefined" ? "undefined" : _typeof(node1)) !== (typeof node2 === "undefined" ? "undefined" : _typeof(node2)) || (typeof node1 === 'string' || typeof node1 === 'number') && node1 !== node2 || node1.tag !== node2.tag;
+  },
+  patchComponent: function patchComponent(component) {
+    if (!component.parent) {
+      diffpatch.setCurrentComponent(component);
+    }
+    var newVirtualNode = component.render();
+    diffpatch.updateElement(component.root, newVirtualNode, component._currentVirtualNode);
+    component._currentVirtualNode = newVirtualNode;
+    component.trigger('render');
   }
 };
 
 exports.default = diffpatch;
 
-},{"./vdoc":6}],3:[function(require,module,exports){
+},{"./registry":5,"./vdoc":7}],3:[function(require,module,exports){
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -226,6 +244,8 @@ var _h = require("./h");
 
 var _h2 = _interopRequireDefault(_h);
 
+var _registry = require("./registry");
+
 var _component = require("./component");
 
 var _component2 = _interopRequireDefault(_component);
@@ -236,12 +256,64 @@ function _interopRequireDefault(obj) {
 
 var ponnie = {
   Component: _component2.default,
+  register: _registry.TagRegistry.add.bind(_registry.TagRegistry),
   vnode: _h2.default
 };
 
 exports.default = ponnie;
 
-},{"./component":1,"./h":3}],5:[function(require,module,exports){
+},{"./component":1,"./h":3,"./registry":5}],5:[function(require,module,exports){
+"use strict";
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+
+var _createClass = function () {
+  function defineProperties(target, props) {
+    for (var i = 0; i < props.length; i++) {
+      var descriptor = props[i];descriptor.enumerable = descriptor.enumerable || false;descriptor.configurable = true;if ("value" in descriptor) descriptor.writable = true;Object.defineProperty(target, descriptor.key, descriptor);
+    }
+  }return function (Constructor, protoProps, staticProps) {
+    if (protoProps) defineProperties(Constructor.prototype, protoProps);if (staticProps) defineProperties(Constructor, staticProps);return Constructor;
+  };
+}();
+
+function _classCallCheck(instance, Constructor) {
+  if (!(instance instanceof Constructor)) {
+    throw new TypeError("Cannot call a class as a function");
+  }
+}
+
+var Registry = function () {
+  function Registry() {
+    _classCallCheck(this, Registry);
+
+    this.store = {};
+  }
+
+  _createClass(Registry, [{
+    key: "add",
+    value: function add(key, value) {
+      this.store[key] = value;
+    }
+  }, {
+    key: "get",
+    value: function get(key) {
+      return this.store[key];
+    }
+  }]);
+
+  return Registry;
+}();
+
+var TagRegistry = new Registry();
+var ComponentRegistry = new Registry();
+
+exports.TagRegistry = TagRegistry;
+exports.ComponentRegistry = ComponentRegistry;
+
+},{}],6:[function(require,module,exports){
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -262,7 +334,7 @@ var util = {
 
 exports.default = util;
 
-},{}],6:[function(require,module,exports){
+},{}],7:[function(require,module,exports){
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -273,9 +345,17 @@ var _util = require("./util");
 
 var _util2 = _interopRequireDefault(_util);
 
+var _diffpatch = require("./diffpatch");
+
+var _diffpatch2 = _interopRequireDefault(_diffpatch);
+
+var _registry = require("./registry");
+
 function _interopRequireDefault(obj) {
   return obj && obj.__esModule ? obj : { default: obj };
 }
+
+var componentId = 0;
 
 var vdocument = {
   createElement: function createElement(node) {
@@ -285,29 +365,58 @@ var vdocument = {
       return document.createTextNode(node);
     }
 
-    var $el = document.createElement(node.tag);
-    var attrs = node.attrs || {};
+    var component = _registry.TagRegistry.get(node.tag);
 
-    Object.keys(attrs).forEach(function (name) {
+    // is it a ponnie component?
+    if (component) {
 
-      if (_util2.default.isRefAttribute(name)) {
+      var componentInstance = new component();
+      componentInstance.parent = $currentComponent;
 
-        $currentComponent.refs[attrs[name]] = $el;
-      } else if (_util2.default.isEventAttribute(name)) {
+      _diffpatch2.default.setCurrentComponent(componentInstance);
 
-        var e = attrs[name].bind($currentComponent);
-        vdocument.bindEvent($el, _util2.default.getEventNameFromAttribute(name), e);
-      } else {
+      componentInstance.update(node.attrs, false);
 
-        vdocument.setAttribute($el, name, attrs[name]);
-      }
-    });
+      // generate an id for the component
+      componentId++;
+      node.componentId = componentId;
 
-    node.children.forEach(function (c) {
-      $el.appendChild(vdocument.createElement(c, $currentComponent));
-    });
+      // store the component instance by id
+      _registry.ComponentRegistry.add(componentId, componentInstance);
 
-    return $el;
+      var el = componentInstance.createElement();
+
+      _diffpatch2.default.setCurrentComponent(componentInstance.parent);
+
+      return el;
+    } else {
+
+      var _el = document.createElement(node.tag);
+      var attrs = node.attrs || {};
+
+      Object.keys(attrs).forEach(function (name) {
+
+        if (_util2.default.isRefAttribute(name)) {
+
+          // set reference
+          $currentComponent.refs[attrs[name]] = _el;
+        } else if (_util2.default.isEventAttribute(name)) {
+
+          // bind event
+          var e = attrs[name].bind($currentComponent);
+          vdocument.bindEvent(_el, _util2.default.getEventNameFromAttribute(name), e);
+        } else {
+
+          vdocument.setAttribute(_el, name, attrs[name]);
+        }
+      });
+
+      node.children.forEach(function (c) {
+        _el.appendChild(vdocument.createElement(c, $currentComponent));
+      });
+
+      return _el;
+    }
   },
   setAttribute: function setAttribute($target, name, value) {
 
@@ -356,7 +465,7 @@ var vdocument = {
 
 exports.default = vdocument;
 
-},{"./util":5}],7:[function(require,module,exports){
+},{"./diffpatch":2,"./registry":5,"./util":6}],8:[function(require,module,exports){
 "use strict";
 
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
@@ -373,21 +482,71 @@ function _possibleConstructorReturn(self, call) { if (!self) { throw new Referen
 
 function _inherits(subClass, superClass) { if (typeof superClass !== "function" && superClass !== null) { throw new TypeError("Super expression must either be null or a function, not " + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass; }
 
-var Example = function (_ponnie$Component) {
-  _inherits(Example, _ponnie$Component);
+var TodoItem = function (_ponnie$Component) {
+  _inherits(TodoItem, _ponnie$Component);
 
-  function Example() {
-    _classCallCheck(this, Example);
+  function TodoItem() {
+    _classCallCheck(this, TodoItem);
 
-    return _possibleConstructorReturn(this, (Example.__proto__ || Object.getPrototypeOf(Example)).call(this, {
-      text: 'ok'
+    return _possibleConstructorReturn(this, (TodoItem.__proto__ || Object.getPrototypeOf(TodoItem)).call(this, {
+      isDone: false,
+      title: 'Unknown item'
     }));
   }
 
-  _createClass(Example, [{
-    key: 'changeText',
-    value: function changeText() {
-      this.update({ text: this.refs.input.value });
+  _createClass(TodoItem, [{
+    key: 'changeTitle',
+    value: function changeTitle() {
+      this.update({
+        title: this.refs.input.value
+      });
+    }
+  }, {
+    key: 'check',
+    value: function check() {
+      this.update({
+        isDone: this.refs.checkbox.checked
+      });
+    }
+  }, {
+    key: 'render',
+    value: function render() {
+      return _ponnie2.default.vnode(
+        'div',
+        { style: this.data.isDone ? 'border: 1px solid green' : 'border: 1px solid red' },
+        _ponnie2.default.vnode(
+          'div',
+          null,
+          this.data.title,
+          _ponnie2.default.vnode('input', { 'p-ref': 'input', 'p-keyup': this.changeTitle })
+        ),
+        _ponnie2.default.vnode('input', { type: 'checkbox', 'p-ref': 'checkbox', 'p-change': this.check })
+      );
+    }
+  }]);
+
+  return TodoItem;
+}(_ponnie2.default.Component);
+
+var TodoList = function (_ponnie$Component2) {
+  _inherits(TodoList, _ponnie$Component2);
+
+  function TodoList() {
+    _classCallCheck(this, TodoList);
+
+    return _possibleConstructorReturn(this, (TodoList.__proto__ || Object.getPrototypeOf(TodoList)).call(this, {
+      title: 'Todo\'s',
+      items: []
+    }));
+  }
+
+  _createClass(TodoList, [{
+    key: 'addItem',
+    value: function addItem() {
+      this.data.items.push({
+        title: this.refs.input.value
+      });
+      this.update();
     }
   }, {
     key: 'render',
@@ -396,19 +555,28 @@ var Example = function (_ponnie$Component) {
         'div',
         null,
         _ponnie2.default.vnode(
-          'div',
+          'h1',
           null,
-          this.data.text
+          this.data.title
         ),
-        _ponnie2.default.vnode('input', { 'p-change': this.changeText, 'p-ref': 'input' })
+        this.data.items.map(function (item) {
+          return _ponnie2.default.vnode('todo-item', { title: item.title, isDone: true });
+        }),
+        _ponnie2.default.vnode(
+          'form',
+          { 'p-submit': this.addItem },
+          _ponnie2.default.vnode('input', { 'p-ref': 'input' })
+        )
       );
     }
   }]);
 
-  return Example;
+  return TodoList;
 }(_ponnie2.default.Component);
 
-var example = new Example();
-example.mount(document.body);
+_ponnie2.default.register('todo-item', TodoItem);
 
-},{"../dist/lib/ponnie":4}]},{},[7]);
+var todo = new TodoList();
+todo.mount(document.body);
+
+},{"../dist/lib/ponnie":4}]},{},[8]);

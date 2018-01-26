@@ -1,6 +1,10 @@
 "use strict";
 
 import util from "./util";
+import diffpatch from "./diffpatch";
+import { TagRegistry, ComponentRegistry } from "./registry";
+
+let componentId = 0;
 
 const vdocument = {
   createElement: function(node, $currentComponent = null) {
@@ -9,31 +13,61 @@ const vdocument = {
       return document.createTextNode(node);
     }
 
-    const $el = document.createElement(node.tag);
-    const attrs = node.attrs || {};
+    const component = TagRegistry.get(node.tag);
 
-    Object.keys(attrs).forEach(name => {
+    // is it a ponnie component?
+    if (component) {
 
-      if (util.isRefAttribute(name)) {
+      const componentInstance = new component();
+      componentInstance.parent = $currentComponent;
 
-        $currentComponent.refs[attrs[name]] = $el;
-      }
-      else if (util.isEventAttribute(name)) {
+      diffpatch.setCurrentComponent(componentInstance);
 
-        const e = attrs[name].bind($currentComponent);
-        vdocument.bindEvent($el, util.getEventNameFromAttribute(name), e);
+      componentInstance.update(node.attrs, false);
 
-      } else {
+      // generate an id for the component
+      componentId++;
+      node.componentId = componentId;
 
-        vdocument.setAttribute($el, name, attrs[name]);
-      }
-    });
+      // store the component instance by id
+      ComponentRegistry.add(componentId, componentInstance);
 
-    node.children.forEach(c => {
-      $el.appendChild(vdocument.createElement(c, $currentComponent));
-    });
+      let el = componentInstance.createElement();
 
-    return $el;
+      diffpatch.setCurrentComponent(componentInstance.parent);
+
+      return el;
+
+    } else {
+
+      const el = document.createElement(node.tag);
+      const attrs = node.attrs || {};
+
+      Object.keys(attrs).forEach(name => {
+
+        if (util.isRefAttribute(name)) {
+
+          // set reference
+          $currentComponent.refs[attrs[name]] = el;
+
+        } else if (util.isEventAttribute(name)) {
+
+          // bind event
+          const e = attrs[name].bind($currentComponent);
+          vdocument.bindEvent(el, util.getEventNameFromAttribute(name), e);
+
+        } else {
+
+          vdocument.setAttribute(el, name, attrs[name]);
+        }
+      });
+
+      node.children.forEach(c => {
+        el.appendChild(vdocument.createElement(c, $currentComponent));
+      });
+
+      return el;
+    }
   },
   setAttribute: function($target, name, value) {
 

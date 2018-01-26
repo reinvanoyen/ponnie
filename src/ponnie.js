@@ -1,10 +1,12 @@
 "use strict";
 
 import vnode from "./h";
+import { TagRegistry } from "./registry";
 import Component from "./component";
 
 const ponnie = {
   Component: Component,
+  register: TagRegistry.add.bind(TagRegistry),
   vnode: vnode
 };
 

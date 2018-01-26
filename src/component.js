@@ -8,18 +8,21 @@ export default class Component {
 
     this._currentVirtualNode = null;
     this.root = null;
+    this.parent = null;
     this.data = data;
     this.eventListeners = {};
     this.refs = {};
   }
 
-  mount(htmlEl) {
-
+  createElement() {
     this.root = document.createElement('div');
-    htmlEl.appendChild(this.root);
+    diffpatch.patchComponent(this);
+    this.trigger('create');
+    return this.root;
+  }
 
-    this.patch();
-    this.trigger('mount');
+  mount(htmlEl) {
+    htmlEl.appendChild(this.createElement());
   }
 
   unmount() {
@@ -29,20 +32,13 @@ export default class Component {
     this.trigger('unmount');
   }
 
-  patch() {
-
-    diffpatch.setCurrentComponent(this);
-    let newVirtualNode = this.render();
-    diffpatch.updateElement(this.root, newVirtualNode, this._currentVirtualNode);
-    this._currentVirtualNode = newVirtualNode;
-    this.trigger('render');
-  }
-
-  update(data) {
+  update(data, patch = true) {
 
     Object.assign(this.data, data);
-    this.patch();
     this.trigger('update', {data: data});
+    if (patch) {
+      diffpatch.patchComponent(this);
+    }
   }
 
   // events

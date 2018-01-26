@@ -1,6 +1,7 @@
 "use strict";
 
 import vdoc from "./vdoc";
+import { TagRegistry, ComponentRegistry } from "./registry";
 
 const diffpatch = {
   currentComponent: null,
@@ -11,31 +12,42 @@ const diffpatch = {
   },
   updateElement: function($parent, newNode, oldNode, index = 0) {
 
-    if ( !newNode && !oldNode ) {
+    // check if we are updating a component
+    if (oldNode && TagRegistry.get(oldNode.tag)) {
 
-      // @PASS do nothing
+      let componentInstance = ComponentRegistry.get(oldNode.componentId);
+      newNode.componentId = oldNode.componentId;
+      componentInstance.update(newNode.attrs);
 
-    } else if (!oldNode) {
+    } else {
 
-      $parent.appendChild(vdoc.createElement(newNode, diffpatch.currentComponent));
+      if ( !newNode && !oldNode ) {
 
-    } else if (!newNode) {
+        // @PASS do nothing
 
-      $parent.removeChild($parent.childNodes[index]);
+      } else if (!oldNode) {
 
-    } else if (diffpatch.isDiff(newNode, oldNode)) {
+        $parent.appendChild(vdoc.createElement(newNode, diffpatch.currentComponent));
 
-      $parent.replaceChild(vdoc.createElement(newNode, diffpatch.currentComponent), $parent.childNodes[index]);
+      } else if (!newNode) {
 
-    } else if (newNode.tag && $parent) {
+        $parent.removeChild($parent.childNodes[index]);
 
-      diffpatch.updateAttributes($parent.childNodes[index], newNode.attrs, oldNode.attrs);
+      } else if (diffpatch.isDiff(newNode, oldNode)) {
 
-      const newLength = newNode.children.length;
-      const oldLength = oldNode.children.length;
+        $parent.replaceChild(vdoc.createElement(newNode, diffpatch.currentComponent), $parent.childNodes[index]);
 
-      for (let i = 0; i < newLength || i < oldLength; i++) {
-        diffpatch.updateElement($parent.childNodes[index], newNode.children[i], oldNode.children[i], i );
+      } else if (newNode.tag && $parent) {
+
+        diffpatch.updateAttributes($parent.childNodes[index], newNode.attrs, oldNode.attrs);
+
+        const newLength = newNode.children.length;
+        const oldLength = oldNode.children.length;
+
+        for (let i = 0; i < newLength || i < oldLength; i++) {
+
+          diffpatch.updateElement($parent.childNodes[index], newNode.children[i], oldNode.children[i], i );
+        }
       }
     }
   },
@@ -60,6 +72,15 @@ const diffpatch = {
         ( typeof node1 === 'string' || typeof node1 === 'number' ) && node1 !== node2 ||
         node1.tag !== node2.tag
     );
+  },
+  patchComponent: function(component) {
+    if (! component.parent) {
+      diffpatch.setCurrentComponent(component);
+    }
+    let newVirtualNode = component.render();
+    diffpatch.updateElement(component.root, newVirtualNode, component._currentVirtualNode);
+    component._currentVirtualNode = newVirtualNode;
+    component.trigger('render');
   }
 };
 
