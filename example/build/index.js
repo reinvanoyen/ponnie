@@ -154,8 +154,21 @@ var diffpatch = {
     if (oldNode && _registry.TagRegistry.get(oldNode.tag)) {
 
       var componentInstance = _registry.ComponentRegistry.get(oldNode.componentId);
-      newNode.componentId = oldNode.componentId;
-      componentInstance.update(newNode.attrs);
+
+      if (!newNode) {
+
+        // no newNode found, unmount the component
+        componentInstance.unmount();
+      } else if (diffpatch.isDiff(newNode, oldNode)) {
+
+        // newNode looks different, replace the component
+        $parent.replaceChild(_vdoc2.default.createElement(newNode, diffpatch.currentComponent), $parent.childNodes[index]);
+      } else {
+
+        // update the component with the new attributes
+        newNode.componentId = oldNode.componentId;
+        componentInstance.update(newNode.attrs);
+      }
     } else {
 
       if (!newNode && !oldNode) {
@@ -202,7 +215,8 @@ var diffpatch = {
     });
   },
   isDiff: function isDiff(node1, node2) {
-    return (typeof node1 === "undefined" ? "undefined" : _typeof(node1)) !== (typeof node2 === "undefined" ? "undefined" : _typeof(node2)) || (typeof node1 === 'string' || typeof node1 === 'number') && node1 !== node2 || node1.tag !== node2.tag;
+
+    return (typeof node1 === "undefined" ? "undefined" : _typeof(node1)) !== (typeof node2 === "undefined" ? "undefined" : _typeof(node2)) || (typeof node1 === 'string' || typeof node1 === 'number') && node1 !== node2 || node1.tag !== node2.tag || node1.attrs && node1.attrs['p-key'] && node2.attrs && node2.attrs['p-key'] && node1.attrs['p-key'] !== node2.attrs['p-key'];
   },
   patchComponent: function patchComponent(component) {
     if (!component.parent) {
@@ -490,6 +504,7 @@ var TodoItem = function (_ponnie$Component) {
 
     return _possibleConstructorReturn(this, (TodoItem.__proto__ || Object.getPrototypeOf(TodoItem)).call(this, {
       isDone: false,
+      id: 0,
       title: 'Unknown item'
     }));
   }
@@ -509,18 +524,29 @@ var TodoItem = function (_ponnie$Component) {
       });
     }
   }, {
+    key: 'remove',
+    value: function remove() {
+      this.parent.removeItem(this.data.id);
+    }
+  }, {
     key: 'render',
     value: function render() {
       return _ponnie2.default.vnode(
         'div',
-        { style: this.data.isDone ? 'border: 1px solid green' : 'border: 1px solid red' },
+        { style: this.data.isDone ? 'border: 4px solid green' : 'border: 4px solid red' },
         _ponnie2.default.vnode(
           'div',
           null,
           this.data.title,
           _ponnie2.default.vnode('input', { 'p-ref': 'input', 'p-keyup': this.changeTitle })
         ),
-        _ponnie2.default.vnode('input', { type: 'checkbox', 'p-ref': 'checkbox', 'p-change': this.check })
+        _ponnie2.default.vnode('input', { type: 'checkbox', 'p-ref': 'checkbox', 'p-change': this.check }),
+        _ponnie2.default.vnode(
+          'button',
+          { 'p-click': this.remove },
+          'delete ',
+          this.data.id
+        )
       );
     }
   }]);
@@ -534,19 +560,37 @@ var TodoList = function (_ponnie$Component2) {
   function TodoList() {
     _classCallCheck(this, TodoList);
 
-    return _possibleConstructorReturn(this, (TodoList.__proto__ || Object.getPrototypeOf(TodoList)).call(this, {
+    var _this2 = _possibleConstructorReturn(this, (TodoList.__proto__ || Object.getPrototypeOf(TodoList)).call(this, {
       title: 'Todo\'s',
       items: []
     }));
+
+    _this2.itemId = 0;
+    return _this2;
   }
 
   _createClass(TodoList, [{
     key: 'addItem',
-    value: function addItem() {
+    value: function addItem(e) {
+
+      this.itemId++;
+
       this.data.items.push({
+        id: this.itemId,
         title: this.refs.input.value
       });
       this.update();
+
+      e.preventDefault();
+    }
+  }, {
+    key: 'removeItem',
+    value: function removeItem(id) {
+
+      var items = this.data.items.filter(function (item) {
+        return item.id !== id;
+      });
+      this.update({ items: items });
     }
   }, {
     key: 'render',
@@ -559,12 +603,16 @@ var TodoList = function (_ponnie$Component2) {
           null,
           this.data.title
         ),
-        this.data.items.map(function (item) {
-          return _ponnie2.default.vnode('todo-item', { title: item.title, isDone: true });
-        }),
+        _ponnie2.default.vnode(
+          'div',
+          null,
+          this.data.items.map(function (item) {
+            return _ponnie2.default.vnode('todo-item', { 'p-key': item.id, id: item.id, title: item.title });
+          })
+        ),
         _ponnie2.default.vnode(
           'form',
-          { 'p-submit': this.addItem },
+          { 'p-submit': this.addItem, action: '' },
           _ponnie2.default.vnode('input', { 'p-ref': 'input' })
         )
       );
