@@ -58,6 +58,7 @@ class TodoList extends ponnie.Component {
       id: this.itemId,
       title: this.refs.input.value
     });
+
     this.update();
 
     e.preventDefault();
@@ -70,14 +71,28 @@ class TodoList extends ponnie.Component {
   }
 
   render() {
+
+    let contents = <div></div>;
+
+    if( this.data.items.length ) {
+
+      contents = (
+        <div>
+          <div>Todo count: {this.data.items.length}</div>
+          <div class="todo-index">
+            {this.data.items.map(item => {
+              return <div p-key={item.id} p-click={e=>this.removeItem(item.id)}>{item.title}</div>;
+              //return <todo-item p-key={item.id} id={item.id} title={item.title} />
+            })}
+          </div>
+        </div>
+      );
+    }
+
     return (
       <div>
         <h1>{this.data.title}</h1>
-        <div>
-          {this.data.items.map(item => {
-            return <todo-item p-key={item.id} id={item.id} title={item.title} />
-          })}
-        </div>
+        {contents}
         <form p-submit={this.addItem} action="">
           <input p-ref="input" />
         </form>

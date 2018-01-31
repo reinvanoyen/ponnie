@@ -5,7 +5,7 @@ const util = {
     return (name === 'p-ref');
   },
   isEventAttribute(name) {
-    return /^p-/.test(name);
+    return ( name !== 'p-key' && /^p-/.test(name) );
   },
   getEventNameFromAttribute(name) {
     return name.slice(2).toLowerCase();

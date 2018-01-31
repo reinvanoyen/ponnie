@@ -6,7 +6,9 @@ import { TagRegistry, ComponentRegistry } from "./registry";
 const diffpatch = {
   currentComponent: null,
   setCurrentComponent: function($component) {
+
     if ($component) {
+
       diffpatch.currentComponent = $component;
     }
   },
@@ -18,12 +20,16 @@ const diffpatch = {
       let componentInstance = ComponentRegistry.get(oldNode.componentId);
 
       if (!newNode) {
+
         // no newNode found, unmount the component
         componentInstance.unmount();
+
       } else if (diffpatch.isDiff(newNode, oldNode)) {
         // newNode looks different, replace the component
         $parent.replaceChild(vdoc.createElement(newNode, diffpatch.currentComponent), $parent.childNodes[index]);
+
       } else {
+
         // update the component with the new attributes
         newNode.componentId = oldNode.componentId;
         componentInstance.update(newNode.attrs);
@@ -31,7 +37,7 @@ const diffpatch = {
 
     } else {
 
-      if ( !newNode && !oldNode ) {
+      if (!newNode && !oldNode) {
 
         // @PASS do nothing
 
@@ -41,7 +47,7 @@ const diffpatch = {
 
       } else if (!newNode) {
 
-        $parent.removeChild($parent.childNodes[index]);
+        diffpatch.removeElement($parent, oldNode, index);
 
       } else if (diffpatch.isDiff(newNode, oldNode)) {
 
@@ -59,6 +65,26 @@ const diffpatch = {
           diffpatch.updateElement($parent.childNodes[index], newNode.children[i], oldNode.children[i], i );
         }
       }
+    }
+  },
+  removeElement: function(parent, node, index) {
+
+    if (typeof node === 'string' || typeof node === 'number') {
+      parent.removeChild(parent.childNodes[index]);
+      return;
+    }
+
+    let component = TagRegistry.get(node.tag);
+
+    if (component) {
+
+      let componentInstance = ComponentRegistry.get(node.componentId);
+      componentInstance.unmount();
+
+    } else {
+
+      console.log( parent, parent.childNodes[index], index );
+      parent.removeChild(parent.childNodes[index]);
     }
   },
   updateAttribute: function($target, name, newVal, oldVal) {
@@ -82,7 +108,14 @@ const diffpatch = {
         ( typeof node1 !== typeof node2 ) ||
         ( ( typeof node1 === 'string' || typeof node1 === 'number' ) && node1 !== node2 ) ||
         ( node1.tag !== node2.tag ) ||
-        ( ( node1.attrs && node1.attrs[ 'p-key' ] ) && ( node2.attrs && node2.attrs[ 'p-key' ] ) && node1.attrs[ 'p-key' ] !== node2.attrs[ 'p-key' ] ) // @TODO this could be improved
+        (
+          ( node1.attrs && node1.attrs[ 'p-key' ] ) ||
+          ( node2.attrs && node2.attrs[ 'p-key' ] ) &&
+          (
+            ( ! node1.attrs[ 'p-key' ] || ! node2.attrs[ 'p-key' ] ) ||
+            ( node1.attrs[ 'p-key' ] !== node2.attrs[ 'p-key' ] )
+          )
+        ) // @TODO this could be improved
     );
   },
   patchComponent: function(component) {
