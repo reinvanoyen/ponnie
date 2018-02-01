@@ -34,6 +34,24 @@ const vdocument = {
 
       let el = componentInstance.createElement();
 
+      // process attributes and events for this component
+      const attrs = node.attrs || {};
+
+      Object.keys(attrs).forEach(name => {
+
+        if (util.isRefAttribute(name)) {
+
+          // set reference to this component instance
+          $currentComponent.refs[attrs[name]] = componentInstance;
+
+        } else if (util.isEventAttribute(name)) {
+
+          // bind event to component
+          const e = attrs[name].bind($currentComponent);
+          componentInstance.on( util.getEventNameFromAttribute(name), e );
+        }
+      } );
+
       diffpatch.setCurrentComponent(componentInstance.parent);
 
       return el;
@@ -60,7 +78,7 @@ const vdocument = {
 
           vdocument.setAttribute(el, name, attrs[name]);
         }
-      });
+      } );
 
       node.children.forEach(c => {
         el.appendChild(vdocument.createElement(c, $currentComponent));
@@ -106,7 +124,7 @@ const vdocument = {
   },
   isCustomAttribute: function(name) {
 
-    return util.isRefAttribute(name) || util.isEventAttribute(name);
+    return util.isRefAttribute(name)  || name === 'p-key' || util.isEventAttribute(name);
   },
   bindEvent($target, eventName, func) {
 

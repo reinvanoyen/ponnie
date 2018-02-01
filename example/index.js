@@ -13,15 +13,22 @@ class TodoItem extends ponnie.Component {
   }
 
   changeTitle() {
-    this.update({
+    this.update( {
       title: this.refs.input.value
-    })
+    } );
   }
 
   check() {
     this.update({
       isDone: this.refs.checkbox.checked
     });
+
+    if(this.data.isDone) {
+      this.trigger( 'done', {
+        id: this.data.id,
+        title: this.data.title
+      } );
+    }
   }
 
   remove() {
@@ -54,10 +61,10 @@ class TodoList extends ponnie.Component {
 
     this.itemId++;
 
-    this.data.items.push({
+    this.data.items.push( {
       id: this.itemId,
       title: this.refs.input.value
-    });
+    } );
 
     this.update();
 
@@ -70,19 +77,22 @@ class TodoList extends ponnie.Component {
     this.update( { items: items } );
   }
 
+  completedItem( e ) {
+    console.log( e );
+  }
+
   render() {
 
-    let contents = <div></div>;
+    let contents = <div p-key="empty"></div>;
 
     if( this.data.items.length ) {
 
       contents = (
-        <div>
+        <div p-key="notempty">
           <div>Todo count: {this.data.items.length}</div>
           <div class="todo-index">
             {this.data.items.map(item => {
-              return <div p-key={item.id} p-click={e=>this.removeItem(item.id)}>{item.title}</div>;
-              //return <todo-item p-key={item.id} id={item.id} title={item.title} />
+              return <todo-item p-key={item.id} id={item.id} title={item.title} p-done={this.completedItem} />;
             })}
           </div>
         </div>

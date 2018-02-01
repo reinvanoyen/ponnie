@@ -83,7 +83,6 @@ const diffpatch = {
 
     } else {
 
-      console.log( parent, parent.childNodes[index], index );
       parent.removeChild(parent.childNodes[index]);
     }
   },
