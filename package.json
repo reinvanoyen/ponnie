@@ -1,6 +1,6 @@
 {
   "name": "ponnie",
-  "version": "0.0.7",
+  "version": "0.0.8",
   "description": "",
   "main": "./dist/lib/ponnie.js",
   "scripts": {
