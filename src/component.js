@@ -23,6 +23,7 @@ export default class Component {
 
   mount(htmlEl) {
     htmlEl.appendChild(this.createElement());
+    this.trigger('mount');
   }
 
   unmount() {

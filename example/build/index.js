@@ -143,7 +143,9 @@ function _interopRequireDefault(obj) {
 var diffpatch = {
   currentComponent: null,
   setCurrentComponent: function setCurrentComponent($component) {
+
     if ($component) {
+
       diffpatch.currentComponent = $component;
     }
   },
@@ -160,7 +162,6 @@ var diffpatch = {
         // no newNode found, unmount the component
         componentInstance.unmount();
       } else if (diffpatch.isDiff(newNode, oldNode)) {
-
         // newNode looks different, replace the component
         $parent.replaceChild(_vdoc2.default.createElement(newNode, diffpatch.currentComponent), $parent.childNodes[index]);
       } else {
@@ -180,7 +181,7 @@ var diffpatch = {
         $parent.appendChild(_vdoc2.default.createElement(newNode, diffpatch.currentComponent));
       } else if (!newNode) {
 
-        $parent.removeChild($parent.childNodes[index]);
+        diffpatch.removeElement($parent, oldNode, index);
       } else if (diffpatch.isDiff(newNode, oldNode)) {
 
         $parent.replaceChild(_vdoc2.default.createElement(newNode, diffpatch.currentComponent), $parent.childNodes[index]);
@@ -196,6 +197,24 @@ var diffpatch = {
           diffpatch.updateElement($parent.childNodes[index], newNode.children[i], oldNode.children[i], i);
         }
       }
+    }
+  },
+  removeElement: function removeElement(parent, node, index) {
+
+    if (typeof node === 'string' || typeof node === 'number') {
+      parent.removeChild(parent.childNodes[index]);
+      return;
+    }
+
+    var component = _registry.TagRegistry.get(node.tag);
+
+    if (component) {
+
+      var componentInstance = _registry.ComponentRegistry.get(node.componentId);
+      componentInstance.unmount();
+    } else {
+
+      parent.removeChild(parent.childNodes[index]);
     }
   },
   updateAttribute: function updateAttribute($target, name, newVal, oldVal) {
@@ -216,7 +235,8 @@ var diffpatch = {
   },
   isDiff: function isDiff(node1, node2) {
 
-    return (typeof node1 === "undefined" ? "undefined" : _typeof(node1)) !== (typeof node2 === "undefined" ? "undefined" : _typeof(node2)) || (typeof node1 === 'string' || typeof node1 === 'number') && node1 !== node2 || node1.tag !== node2.tag || node1.attrs && node1.attrs['p-key'] && node2.attrs && node2.attrs['p-key'] && node1.attrs['p-key'] !== node2.attrs['p-key'];
+    return (typeof node1 === "undefined" ? "undefined" : _typeof(node1)) !== (typeof node2 === "undefined" ? "undefined" : _typeof(node2)) || (typeof node1 === 'string' || typeof node1 === 'number') && node1 !== node2 || node1.tag !== node2.tag || node1.attrs && node1.attrs['p-key'] || node2.attrs && node2.attrs['p-key'] && (!node1.attrs['p-key'] || !node2.attrs['p-key'] || node1.attrs['p-key'] !== node2.attrs['p-key']) // @TODO this could be improved
+    ;
   },
   patchComponent: function patchComponent(component) {
     if (!component.parent) {
@@ -338,8 +358,7 @@ var util = {
     return name === 'p-ref';
   },
   isEventAttribute: function isEventAttribute(name) {
-    return (/^p-/.test(name)
-    );
+    return name !== 'p-key' && /^p-/.test(name);
   },
   getEventNameFromAttribute: function getEventNameFromAttribute(name) {
     return name.slice(2).toLowerCase();
@@ -400,28 +419,45 @@ var vdocument = {
 
       var el = componentInstance.createElement();
 
-      _diffpatch2.default.setCurrentComponent(componentInstance.parent);
-
-      return el;
-    } else {
-
-      var _el = document.createElement(node.tag);
+      // process attributes and events for this component
       var attrs = node.attrs || {};
 
       Object.keys(attrs).forEach(function (name) {
 
         if (_util2.default.isRefAttribute(name)) {
 
+          // set reference to this component instance
+          $currentComponent.refs[attrs[name]] = componentInstance;
+        } else if (_util2.default.isEventAttribute(name)) {
+
+          // bind event to component
+          var e = attrs[name].bind($currentComponent);
+          componentInstance.on(_util2.default.getEventNameFromAttribute(name), e);
+        }
+      });
+
+      _diffpatch2.default.setCurrentComponent(componentInstance.parent);
+
+      return el;
+    } else {
+
+      var _el = document.createElement(node.tag);
+      var _attrs = node.attrs || {};
+
+      Object.keys(_attrs).forEach(function (name) {
+
+        if (_util2.default.isRefAttribute(name)) {
+
           // set reference
-          $currentComponent.refs[attrs[name]] = _el;
+          $currentComponent.refs[_attrs[name]] = _el;
         } else if (_util2.default.isEventAttribute(name)) {
 
           // bind event
-          var e = attrs[name].bind($currentComponent);
+          var e = _attrs[name].bind($currentComponent);
           vdocument.bindEvent(_el, _util2.default.getEventNameFromAttribute(name), e);
         } else {
 
-          vdocument.setAttribute(_el, name, attrs[name]);
+          vdocument.setAttribute(_el, name, _attrs[name]);
         }
       });
 
@@ -469,7 +505,7 @@ var vdocument = {
   },
   isCustomAttribute: function isCustomAttribute(name) {
 
-    return _util2.default.isRefAttribute(name) || _util2.default.isEventAttribute(name);
+    return _util2.default.isRefAttribute(name) || name === 'p-key' || _util2.default.isEventAttribute(name);
   },
   bindEvent: function bindEvent($target, eventName, func) {
 
@@ -522,6 +558,13 @@ var TodoItem = function (_ponnie$Component) {
       this.update({
         isDone: this.refs.checkbox.checked
       });
+
+      if (this.data.isDone) {
+        this.trigger('done', {
+          id: this.data.id,
+          title: this.data.title
+        });
+      }
     }
   }, {
     key: 'remove',
@@ -579,6 +622,7 @@ var TodoList = function (_ponnie$Component2) {
         id: this.itemId,
         title: this.refs.input.value
       });
+
       this.update();
 
       e.preventDefault();
@@ -593,8 +637,38 @@ var TodoList = function (_ponnie$Component2) {
       this.update({ items: items });
     }
   }, {
+    key: 'completedItem',
+    value: function completedItem(e) {
+      console.log(e);
+    }
+  }, {
     key: 'render',
     value: function render() {
+      var _this3 = this;
+
+      var contents = _ponnie2.default.vnode('div', { 'p-key': 'empty' });
+
+      if (this.data.items.length) {
+
+        contents = _ponnie2.default.vnode(
+          'div',
+          { 'p-key': 'notempty' },
+          _ponnie2.default.vnode(
+            'div',
+            null,
+            'Todo count: ',
+            this.data.items.length
+          ),
+          _ponnie2.default.vnode(
+            'div',
+            { 'class': 'todo-index' },
+            this.data.items.map(function (item) {
+              return _ponnie2.default.vnode('todo-item', { 'p-key': item.id, id: item.id, title: item.title, 'p-done': _this3.completedItem });
+            })
+          )
+        );
+      }
+
       return _ponnie2.default.vnode(
         'div',
         null,
@@ -603,13 +677,7 @@ var TodoList = function (_ponnie$Component2) {
           null,
           this.data.title
         ),
-        _ponnie2.default.vnode(
-          'div',
-          null,
-          this.data.items.map(function (item) {
-            return _ponnie2.default.vnode('todo-item', { 'p-key': item.id, id: item.id, title: item.title });
-          })
-        ),
+        contents,
         _ponnie2.default.vnode(
           'form',
           { 'p-submit': this.addItem, action: '' },
