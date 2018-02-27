@@ -108,8 +108,7 @@ const diffpatch = {
         ( ( typeof node1 === 'string' || typeof node1 === 'number' ) && node1 !== node2 ) ||
         ( node1.tag !== node2.tag ) ||
         (
-          ( node1.attrs && node1.attrs[ 'p-key' ] ) ||
-          ( node2.attrs && node2.attrs[ 'p-key' ] ) &&
+          ( ( node1.attrs && node1.attrs[ 'p-key' ] ) || ( node2.attrs && node2.attrs[ 'p-key' ] ) ) &&
           (
             ( ! node1.attrs[ 'p-key' ] || ! node2.attrs[ 'p-key' ] ) ||
             ( node1.attrs[ 'p-key' ] !== node2.attrs[ 'p-key' ] )
