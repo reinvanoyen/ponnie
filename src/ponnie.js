@@ -1,6 +1,6 @@
 "use strict";
 
-import vnode from "./h";
+import vnode from "./vnode";
 import { TagRegistry } from "./registry";
 import Component from "./component";
 

@@ -37,7 +37,7 @@ class TodoItem extends ponnie.Component {
 
   render() {
     return (
-      <div style={ this.data.isDone ? 'border: 4px solid green' : 'border: 4px solid red' }>
+      <div style={ this.data.isDone ? 'border: 4px solid green' : 'border: 4px solid red' } class="todo-item">
         <div>{this.data.title}<input p-ref="input" p-keyup={this.changeTitle} /></div>
         <input type="checkbox" p-ref="checkbox" p-change={this.check} />
         <button p-click={this.remove}>delete {this.data.id}</button>
@@ -61,10 +61,10 @@ class TodoList extends ponnie.Component {
 
     this.itemId++;
 
-    this.data.items.push( {
+    this.data.items.push({
       id: this.itemId,
       title: this.refs.input.value
-    } );
+    });
 
     this.update();
 
@@ -74,7 +74,7 @@ class TodoList extends ponnie.Component {
   removeItem( id ) {
 
     let items = this.data.items.filter( item => item.id !== id );
-    this.update( { items: items } );
+    this.update({ items: items });
   }
 
   completedItem( e ) {
@@ -105,6 +105,7 @@ class TodoList extends ponnie.Component {
         {contents}
         <form p-submit={this.addItem} action="">
           <input p-ref="input" />
+          <button>Add!</button>
         </form>
       </div>
     );

@@ -1,6 +1,6 @@
 "use strict";
 
-import diffpatch from "./diffpatch";
+import vdom from "./vdom";
 
 export default class Component {
 
@@ -15,13 +15,15 @@ export default class Component {
   }
 
   createElement() {
+
     this.root = document.createElement('div');
-    diffpatch.patchComponent(this);
+    vdom.patchComponent(this);
     this.trigger('create');
     return this.root;
   }
 
   mount(htmlEl) {
+
     htmlEl.appendChild(this.createElement());
     this.trigger('mount');
   }
@@ -38,7 +40,7 @@ export default class Component {
     Object.assign(this.data, data);
     this.trigger('update', {data: data});
     if (patch) {
-      diffpatch.patchComponent(this);
+      vdom.patchComponent(this);
     }
   }
 

@@ -55,6 +55,7 @@ var Component = function () {
     key: "mount",
     value: function mount(htmlEl) {
       htmlEl.appendChild(this.createElement());
+      this.trigger('mount');
     }
   }, {
     key: "unmount",
@@ -235,7 +236,7 @@ var diffpatch = {
   },
   isDiff: function isDiff(node1, node2) {
 
-    return (typeof node1 === "undefined" ? "undefined" : _typeof(node1)) !== (typeof node2 === "undefined" ? "undefined" : _typeof(node2)) || (typeof node1 === 'string' || typeof node1 === 'number') && node1 !== node2 || node1.tag !== node2.tag || node1.attrs && node1.attrs['p-key'] || node2.attrs && node2.attrs['p-key'] && (!node1.attrs['p-key'] || !node2.attrs['p-key'] || node1.attrs['p-key'] !== node2.attrs['p-key']) // @TODO this could be improved
+    return (typeof node1 === "undefined" ? "undefined" : _typeof(node1)) !== (typeof node2 === "undefined" ? "undefined" : _typeof(node2)) || (typeof node1 === 'string' || typeof node1 === 'number') && node1 !== node2 || node1.tag !== node2.tag || (node1.attrs && node1.attrs['p-key'] || node2.attrs && node2.attrs['p-key']) && (!node1.attrs['p-key'] || !node2.attrs['p-key'] || node1.attrs['p-key'] !== node2.attrs['p-key']) // @TODO this could be improved
     ;
   },
   patchComponent: function patchComponent(component) {
@@ -576,7 +577,7 @@ var TodoItem = function (_ponnie$Component) {
     value: function render() {
       return _ponnie2.default.vnode(
         'div',
-        { style: this.data.isDone ? 'border: 4px solid green' : 'border: 4px solid red' },
+        { style: this.data.isDone ? 'border: 4px solid green' : 'border: 4px solid red', 'class': 'todo-item' },
         _ponnie2.default.vnode(
           'div',
           null,
@@ -681,7 +682,12 @@ var TodoList = function (_ponnie$Component2) {
         _ponnie2.default.vnode(
           'form',
           { 'p-submit': this.addItem, action: '' },
-          _ponnie2.default.vnode('input', { 'p-ref': 'input' })
+          _ponnie2.default.vnode('input', { 'p-ref': 'input' }),
+          _ponnie2.default.vnode(
+            'button',
+            null,
+            'Add!'
+          )
         )
       );
     }
