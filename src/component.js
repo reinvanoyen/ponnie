@@ -22,12 +22,6 @@ export default class Component {
     return this.root;
   }
 
-  mount(htmlEl) {
-
-    htmlEl.appendChild(this.createElement());
-    this.trigger('mount');
-  }
-
   unmount() {
 
     this.root.parentNode.removeChild(this.root);

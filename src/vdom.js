@@ -8,6 +8,82 @@ let componentId = 0;
 
 const vdom = {
   currentComponent: null,
+  patchComponent: function(component) {
+
+    vdom.currentComponent = component;
+
+    // render the component to get the new virtual node
+    let newVirtualNode = component.render();
+
+    // update the component, comparing the new virtual node with the current virtual node
+    vdom.updateElement(component.root, newVirtualNode, component._currentVirtualNode);
+
+    // store the new virtual node as the current virtual node
+    component._currentVirtualNode = newVirtualNode;
+
+    // trigger the render event
+    component.trigger('render');
+
+    if (component.parent) {
+      vdom.currentComponent = component.parent;
+    }
+  },
+  updateElement: function(parentEl, newVNode, oldVNode, index = 0) {
+
+    // check if we are updating a component
+    if (oldVNode && TagRegistry.get(oldVNode.tag)) {
+
+      let componentInstance = ComponentRegistry.get(oldVNode.componentId);
+
+      if (!newVNode) {
+
+        // no newNode found, unmount the component
+        componentInstance.unmount();
+
+      } else if (vdom.isDiff(newVNode, oldVNode)) {
+
+        // newNode looks different, replace the component
+        parentEl.replaceChild(vdom.createElement(newVNode), parentEl.childNodes[index]);
+
+      } else {
+
+        // update the component with the new attributes
+        newVNode.componentId = oldVNode.componentId;
+        componentInstance.update(newVNode.attrs);
+      }
+
+    } else {
+
+      if (!newVNode && !oldVNode) {
+        return;
+      }
+
+      if (!oldVNode) {
+
+        parentEl.appendChild(vdom.createElement(newVNode));
+
+      } else if (!newVNode) {
+
+        vdom.removeElement(parentEl, oldVNode, index);
+
+      } else if (vdom.isDiff(newVNode, oldVNode)) {
+
+        parentEl.replaceChild(vdom.createElement(newVNode), parentEl.childNodes[index]);
+
+      } else if (newVNode.tag && parentEl) {
+
+        vdom.updateAttributes(parentEl.childNodes[index], newVNode.attrs, oldVNode.attrs);
+
+        const newLength = newVNode.children.length;
+        const oldLength = oldVNode.children.length;
+
+        for (let i = 0; i < newLength || i < oldLength; i++) {
+
+          vdom.updateElement(parentEl.childNodes[index], newVNode.children[i], oldVNode.children[i], i );
+        }
+      }
+    }
+  },
   createElement: function(vnode) {
 
     if (typeof vnode === 'string' || typeof vnode === 'number') {
@@ -25,7 +101,7 @@ const vdom = {
       componentInstance.parent = vdom.currentComponent;
 
       // set the newly created component instance as the current component
-      vdom.currentComponent = componentInstance;
+      //vdom.currentComponent = componentInstance;
 
       // update the component instance with the attrs
       componentInstance.update(vnode.attrs, false);
@@ -53,12 +129,16 @@ const vdom = {
           const e = attrs[name].bind(vdom.currentComponent);
           componentInstance.on( vdom.getEventNameFromAttribute(name), e );
         }
-      } );
-
-      vdom.setCurrentComponent(componentInstance.parent);
+      });
 
       // finally create the HTMLElement
-      return componentInstance.createElement();
+      let el = componentInstance.createElement();
+
+      // set the current component back to the parent of the created component
+      //vdom.currentComponent = componentInstance.parent;
+
+      // give back the HTMLElement
+      return el;
 
     } else {
 
@@ -82,69 +162,13 @@ const vdom = {
 
           vdom.setAttribute(el, name, attrs[name]);
         }
-      } );
+      });
 
       vnode.children.forEach(vnodeChild => {
         el.appendChild(vdom.createElement(vnodeChild));
       });
 
       return el;
-    }
-  },
-  updateElement: function(parentEl, newVNode, oldVNode, index = 0) {
-
-    // check if we are updating a component
-    if (oldNode && TagRegistry.get(oldVNode.tag)) {
-
-      let componentInstance = ComponentRegistry.get(oldVNode.componentId);
-
-      if (!newVNode) {
-
-        // no newNode found, unmount the component
-        componentInstance.unmount();
-
-      } else if (vdom.isDiff(newVNode, oldVNode)) {
-
-        // newNode looks different, replace the component
-        parentEl.replaceChild(vdom.createElement(newVNode, vdom.currentComponent), parentEl.childNodes[index]);
-
-      } else {
-
-        // update the component with the new attributes
-        newVNode.componentId = oldVNode.componentId;
-        componentInstance.update(newVNode.attrs);
-      }
-
-    } else {
-
-      if (!newVNode && !oldVNode) {
-        return;
-      }
-
-      if (!oldVNode) {
-
-        parentEl.appendChild(vdom.createElement(newVNode, vdom.currentComponent));
-
-      } else if (!newVNode) {
-
-        vdom.removeElement(parentEl, oldVNode, index);
-
-      } else if (vdom.isDiff(newVNode, oldVNode)) {
-
-        parentEl.replaceChild(vdom.createElement(newVNode, vdom.currentComponent), parentEl.childNodes[index]);
-
-      } else if (newVNode.tag && parentEl) {
-
-        vdom.updateAttributes(parentEl.childNodes[index], newVNode.attrs, oldVNode.attrs);
-
-        const newLength = newVNode.children.length;
-        const oldLength = oldVNode.children.length;
-
-        for (let i = 0; i < newLength || i < oldLength; i++) {
-
-          vdom.updateElement(parentEl.childNodes[index], newVNode.children[i], oldVNode.children[i], i );
-        }
-      }
     }
   },
   removeElement: function(parentEl, vnode, index) {
@@ -186,15 +210,20 @@ const vdom = {
   updateAttribute: function(targetEl, name, newVal, oldVal) {
 
     if (!newVal) {
+
       vdom.removeAttribute(targetEl, name, newVal);
+
     } else if (!oldVal || newVal !== oldVal) {
+
       vdom.setAttribute(targetEl, name, newVal);
     }
   },
   updateAttributes: function(targetEl, newAttrs, oldAttrs = {}) {
 
     const props = Object.assign({}, newAttrs, oldAttrs);
+
     Object.keys(props).forEach(name => {
+
       vdom.updateAttribute(targetEl, name, newAttrs[name], oldAttrs[name]);
     });
   },
@@ -244,24 +273,6 @@ const vdom = {
           )
         ) // @TODO this could be improved
     );
-  },
-  patchComponent: function(component) {
-
-    if (!component.parent) {
-      vdom.setCurrentComponent(component);
-    }
-
-    // render the component to get the new virtual node
-    let newVirtualNode = component.render();
-
-    // update the component, comparing the new virtual node with the current virtual node
-    vdom.updateElement(component.root, newVirtualNode, component._currentVirtualNode);
-
-    // store the new virtual node as the current virtual node
-    component._currentVirtualNode = newVirtualNode;
-
-    // trigger the render event
-    component.trigger('render');
   }
 };
 

@@ -7,6 +7,10 @@ import Component from "./component";
 const ponnie = {
   Component: Component,
   register: TagRegistry.add.bind(TagRegistry),
+  mount: (component, htmlEl) => {
+    htmlEl.appendChild(component.createElement());
+    component.trigger('mount');
+  },
   vnode: vnode
 };
 
