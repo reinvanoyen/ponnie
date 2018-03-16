@@ -2,6 +2,57 @@
 
 import ponnie from '../dist/lib/ponnie';
 
+class AutoSuggest extends ponnie.Component {
+
+  constructor() {
+    super({
+      genres: [],
+      artists: [],
+      releases: []
+    });
+  }
+
+  render() {
+
+    if (this.data.genres.length || this.data.artists.length || this.data.releases.length) {
+
+      return (
+          <div class="autosuggest">
+            <div class="autosuggest-genres">
+              {this.data.genres.map(genre => {
+                return (
+                    <div p-key={'genre-'+genre.id}>
+                      {genre.name}
+                    </div>
+                );
+              })}
+            </div>
+            <div class="autosuggest-artists">
+              {this.data.artists.map(artist => {
+                return (
+                    <div p-key={'artist-'+artist.id}>
+                      {artist.name}
+                    </div>
+                );
+              })}
+            </div>
+            <div class="autosuggest-releases">
+              {this.data.releases.map(release => {
+                return (
+                    <div p-key={'release-'+release.id}>
+                      {release.title}
+                    </div>
+                );
+              })}
+            </div>
+          </div>
+      );
+    }
+
+    return <div p-key="no-autosuggest"></div>;
+  }
+}
+
 class TodoItem extends ponnie.Component {
 
   constructor() {
@@ -263,8 +314,65 @@ class Cart extends ponnie.Component {
 
 ponnie.register('promo-code-widget', PromoCodeWidget);
 
+//let search = new Search(document.getElementById('my-input'), document.getElementById('autosuggest-socket'));
+
 let cart = new Cart();
 ponnie.mount(cart, document.body);
 
 let list = new TodoList();
 ponnie.mount(list, document.body);
+
+let autosuggest = new AutoSuggest();
+ponnie.mount(autosuggest, document.body);
+
+setTimeout(() => {
+
+  autosuggest.update({
+    genres: [],
+    artists: [
+      {
+        id: 369,
+        name: 'Tesseract',
+        url: 'beta/tesseract/'
+      },
+      {
+        id: 379,
+        name: 'Terrell Drayton',
+        url: 'beta/terrell-drayton/'
+      },
+      {
+        id: 101,
+        name: 'fdfdfd Drayfdfdfdfton',
+        url: 'beta/terrefdddll-drayton/'
+      }
+    ],
+    releases: []
+  });
+
+}, 500);
+
+setTimeout(() => {
+
+  autosuggest.update({
+    genres: [],
+    artists: [
+      {
+        id: 369,
+        name: 'Tesseract',
+        url: 'beta/tesseract/'
+      }
+    ],
+    releases: []
+  });
+
+}, 2000);
+
+setTimeout(() => {
+
+  autosuggest.update({
+    genres: [],
+    artists: [],
+    releases: []
+  });
+
+}, 4000);

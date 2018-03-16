@@ -78,9 +78,10 @@ const vdom = {
         const oldLength = oldVNode.children.length;
 
         for (let i = 0; i < newLength || i < oldLength; i++) {
-
-          vdom.updateElement(parentEl.childNodes[index], newVNode.children[i], oldVNode.children[i], i );
+          vdom.updateElement(parentEl.childNodes[index], newVNode.children[i], oldVNode.children[i], i);
         }
+
+        return index;
       }
     }
   },
@@ -175,9 +176,14 @@ const vdom = {
 
     if (typeof vnode === 'string' || typeof vnode === 'number' || ! TagRegistry.get(vnode.tag)) {
 
-      // it's either a string, number or HTMLElement
-      parentEl.removeChild(parentEl.childNodes[index]);
-      return;
+      if (parentEl.childNodes[index]) {
+        // it's either a string, number or HTMLElement AND it exists in the DOM
+        parentEl.removeChild(parentEl.childNodes[index]);
+        return;
+      } else {
+        vdom.removeElement(parentEl, vnode, index-1);
+        return;
+      }
     }
 
     // it should be a custom component, find the component instance and unmount it

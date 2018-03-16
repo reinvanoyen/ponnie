@@ -283,9 +283,10 @@ var vdom = {
         var oldLength = oldVNode.children.length;
 
         for (var i = 0; i < newLength || i < oldLength; i++) {
-
           vdom.updateElement(parentEl.childNodes[index], newVNode.children[i], oldVNode.children[i], i);
         }
+
+        return index;
       }
     }
   },
@@ -376,9 +377,14 @@ var vdom = {
 
     if (typeof vnode === 'string' || typeof vnode === 'number' || !_registry.TagRegistry.get(vnode.tag)) {
 
-      // it's either a string, number or HTMLElement
-      parentEl.removeChild(parentEl.childNodes[index]);
-      return;
+      if (parentEl.childNodes[index]) {
+        // it's either a string, number or HTMLElement AND it exists in the DOM
+        parentEl.removeChild(parentEl.childNodes[index]);
+        return;
+      } else {
+        vdom.removeElement(parentEl, vnode, index - 1);
+        return;
+      }
     }
 
     // it should be a custom component, find the component instance and unmount it
@@ -491,7 +497,7 @@ function h(tag, attrs) {
 
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
-var _ponnie = require('../dist/lib/ponnie');
+var _ponnie = require("../dist/lib/ponnie");
 
 var _ponnie2 = _interopRequireDefault(_ponnie);
 
@@ -503,8 +509,73 @@ function _possibleConstructorReturn(self, call) { if (!self) { throw new Referen
 
 function _inherits(subClass, superClass) { if (typeof superClass !== "function" && superClass !== null) { throw new TypeError("Super expression must either be null or a function, not " + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass; }
 
-var TodoItem = function (_ponnie$Component) {
-  _inherits(TodoItem, _ponnie$Component);
+var AutoSuggest = function (_ponnie$Component) {
+  _inherits(AutoSuggest, _ponnie$Component);
+
+  function AutoSuggest() {
+    _classCallCheck(this, AutoSuggest);
+
+    return _possibleConstructorReturn(this, (AutoSuggest.__proto__ || Object.getPrototypeOf(AutoSuggest)).call(this, {
+      genres: [],
+      artists: [],
+      releases: []
+    }));
+  }
+
+  _createClass(AutoSuggest, [{
+    key: "render",
+    value: function render() {
+
+      if (this.data.genres.length || this.data.artists.length || this.data.releases.length) {
+
+        return _ponnie2.default.vnode(
+          "div",
+          { "class": "autosuggest" },
+          _ponnie2.default.vnode(
+            "div",
+            { "class": "autosuggest-genres" },
+            this.data.genres.map(function (genre) {
+              return _ponnie2.default.vnode(
+                "div",
+                { "p-key": 'genre-' + genre.id },
+                genre.name
+              );
+            })
+          ),
+          _ponnie2.default.vnode(
+            "div",
+            { "class": "autosuggest-artists" },
+            this.data.artists.map(function (artist) {
+              return _ponnie2.default.vnode(
+                "div",
+                { "p-key": 'artist-' + artist.id },
+                artist.name
+              );
+            })
+          ),
+          _ponnie2.default.vnode(
+            "div",
+            { "class": "autosuggest-releases" },
+            this.data.releases.map(function (release) {
+              return _ponnie2.default.vnode(
+                "div",
+                { "p-key": 'release-' + release.id },
+                release.title
+              );
+            })
+          )
+        );
+      }
+
+      return _ponnie2.default.vnode("div", { "p-key": "no-autosuggest" });
+    }
+  }]);
+
+  return AutoSuggest;
+}(_ponnie2.default.Component);
+
+var TodoItem = function (_ponnie$Component2) {
+  _inherits(TodoItem, _ponnie$Component2);
 
   function TodoItem() {
     _classCallCheck(this, TodoItem);
@@ -517,14 +588,14 @@ var TodoItem = function (_ponnie$Component) {
   }
 
   _createClass(TodoItem, [{
-    key: 'changeTitle',
+    key: "changeTitle",
     value: function changeTitle() {
       this.update({
         title: this.refs.input.value
       });
     }
   }, {
-    key: 'check',
+    key: "check",
     value: function check() {
       this.update({
         isDone: this.refs.checkbox.checked
@@ -538,27 +609,27 @@ var TodoItem = function (_ponnie$Component) {
       }
     }
   }, {
-    key: 'remove',
+    key: "remove",
     value: function remove() {
       this.parent.removeItem(this.data.id);
     }
   }, {
-    key: 'render',
+    key: "render",
     value: function render() {
       return _ponnie2.default.vnode(
-        'div',
-        { 'class': 'todo-item', style: this.data.isDone ? 'border: 4px solid green' : 'border: 4px solid red' },
+        "div",
+        { "class": "todo-item", style: this.data.isDone ? 'border: 4px solid green' : 'border: 4px solid red' },
         _ponnie2.default.vnode(
-          'div',
+          "div",
           null,
           this.data.title,
-          _ponnie2.default.vnode('input', { 'p-ref': 'input', 'p-keyup': this.changeTitle })
+          _ponnie2.default.vnode("input", { "p-ref": "input", "p-keyup": this.changeTitle })
         ),
-        _ponnie2.default.vnode('input', { type: 'checkbox', 'p-ref': 'checkbox', 'p-change': this.check }),
+        _ponnie2.default.vnode("input", { type: "checkbox", "p-ref": "checkbox", "p-change": this.check }),
         _ponnie2.default.vnode(
-          'button',
-          { 'p-click': this.remove },
-          'delete ',
+          "button",
+          { "p-click": this.remove },
+          "delete ",
           this.data.id
         )
       );
@@ -568,23 +639,23 @@ var TodoItem = function (_ponnie$Component) {
   return TodoItem;
 }(_ponnie2.default.Component);
 
-var TodoList = function (_ponnie$Component2) {
-  _inherits(TodoList, _ponnie$Component2);
+var TodoList = function (_ponnie$Component3) {
+  _inherits(TodoList, _ponnie$Component3);
 
   function TodoList() {
     _classCallCheck(this, TodoList);
 
-    var _this2 = _possibleConstructorReturn(this, (TodoList.__proto__ || Object.getPrototypeOf(TodoList)).call(this, {
+    var _this3 = _possibleConstructorReturn(this, (TodoList.__proto__ || Object.getPrototypeOf(TodoList)).call(this, {
       title: 'Todo\'s',
       items: []
     }));
 
-    _this2.itemId = 0;
-    return _this2;
+    _this3.itemId = 0;
+    return _this3;
   }
 
   _createClass(TodoList, [{
-    key: 'addItem',
+    key: "addItem",
     value: function addItem(e) {
 
       this.itemId++;
@@ -599,7 +670,7 @@ var TodoList = function (_ponnie$Component2) {
       e.preventDefault();
     }
   }, {
-    key: 'removeItem',
+    key: "removeItem",
     value: function removeItem(id) {
 
       var items = this.data.items.filter(function (item) {
@@ -610,51 +681,51 @@ var TodoList = function (_ponnie$Component2) {
       });
     }
   }, {
-    key: 'completedItem',
+    key: "completedItem",
     value: function completedItem(e) {
       console.log(e);
     }
   }, {
-    key: 'render',
+    key: "render",
     value: function render() {
-      var _this3 = this;
+      var _this4 = this;
 
-      var contents = _ponnie2.default.vnode('div', { 'p-key': 'empty' });
+      var contents = _ponnie2.default.vnode("div", { "p-key": "empty" });
 
       if (this.data.items.length) {
 
         contents = _ponnie2.default.vnode(
-          'div',
-          { 'p-key': 'notempty' },
+          "div",
+          { "p-key": "notempty" },
           _ponnie2.default.vnode(
-            'div',
+            "div",
             null,
-            'Todo count: ',
+            "Todo count: ",
             this.data.items.length
           ),
           _ponnie2.default.vnode(
-            'div',
-            { 'class': 'todo-index' },
+            "div",
+            { "class": "todo-index" },
             this.data.items.map(function (item) {
-              return _ponnie2.default.vnode('todo-item', { 'p-key': item.id, id: item.id, title: item.title, 'p-done': _this3.completedItem });
+              return _ponnie2.default.vnode("todo-item", { "p-key": item.id, id: item.id, title: item.title, "p-done": _this4.completedItem });
             })
           )
         );
       }
 
       return _ponnie2.default.vnode(
-        'div',
+        "div",
         null,
         _ponnie2.default.vnode(
-          'h1',
+          "h1",
           null,
           this.data.title
         ),
         contents,
         _ponnie2.default.vnode(
-          'form',
-          { 'p-submit': this.addItem, action: '' },
-          _ponnie2.default.vnode('input', { 'p-ref': 'input' })
+          "form",
+          { "p-submit": this.addItem, action: "" },
+          _ponnie2.default.vnode("input", { "p-ref": "input" })
         )
       );
     }
@@ -665,8 +736,8 @@ var TodoList = function (_ponnie$Component2) {
 
 _ponnie2.default.register('todo-item', TodoItem);
 
-var Confirm = function (_ponnie$Component3) {
-  _inherits(Confirm, _ponnie$Component3);
+var Confirm = function (_ponnie$Component4) {
+  _inherits(Confirm, _ponnie$Component4);
 
   function Confirm() {
     var text = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : 'Are you sure?';
@@ -675,7 +746,7 @@ var Confirm = function (_ponnie$Component3) {
 
     _classCallCheck(this, Confirm);
 
-    var _this4 = _possibleConstructorReturn(this, (Confirm.__proto__ || Object.getPrototypeOf(Confirm)).call(this, {
+    var _this5 = _possibleConstructorReturn(this, (Confirm.__proto__ || Object.getPrototypeOf(Confirm)).call(this, {
       text: text,
       confirmButtonText: confirmButtonText,
       cancelButtonText: cancelButtonText,
@@ -684,39 +755,39 @@ var Confirm = function (_ponnie$Component3) {
       items: []
     }));
 
-    _ponnie2.default.mount(_this4, document.body);
-    _this4.open();
-    return _this4;
+    _ponnie2.default.mount(_this5, document.body);
+    _this5.open();
+    return _this5;
   }
 
   _createClass(Confirm, [{
-    key: 'open',
+    key: "open",
     value: function open() {
       this.update({
         isOpen: true
       });
     }
   }, {
-    key: 'close',
+    key: "close",
     value: function close() {
       this.update({
         isOpen: false
       });
     }
   }, {
-    key: 'confirm',
+    key: "confirm",
     value: function confirm() {
       this.trigger('confirm');
       this.close();
     }
   }, {
-    key: 'cancel',
+    key: "cancel",
     value: function cancel() {
       this.trigger('cancel');
       this.close();
     }
   }, {
-    key: 'render',
+    key: "render",
     value: function render() {
 
       if (!this.data.isOpen) {
@@ -724,27 +795,27 @@ var Confirm = function (_ponnie$Component3) {
       }
 
       return _ponnie2.default.vnode(
-        'div',
-        { 'class': 'confirm-wrap' },
+        "div",
+        { "class": "confirm-wrap" },
         _ponnie2.default.vnode(
-          'div',
-          { 'class': 'confirm' },
+          "div",
+          { "class": "confirm" },
           _ponnie2.default.vnode(
-            'div',
-            { 'class': 'confirm-text' },
+            "div",
+            { "class": "confirm-text" },
             this.data.text
           ),
           _ponnie2.default.vnode(
-            'div',
-            { 'class': 'confirm-footer' },
+            "div",
+            { "class": "confirm-footer" },
             _ponnie2.default.vnode(
-              'button',
-              { 'class': 'btn-confirm-confirm', 'p-click': this.confirm },
+              "button",
+              { "class": "btn-confirm-confirm", "p-click": this.confirm },
               this.data.confirmButtonText
             ),
             _ponnie2.default.vnode(
-              'button',
-              { 'class': 'btn-confirm-cancel', 'p-click': this.cancel },
+              "button",
+              { "class": "btn-confirm-cancel", "p-click": this.cancel },
               this.data.cancelButtonText
             )
           )
@@ -756,8 +827,8 @@ var Confirm = function (_ponnie$Component3) {
   return Confirm;
 }(_ponnie2.default.Component);
 
-var PromoCodeWidget = function (_ponnie$Component4) {
-  _inherits(PromoCodeWidget, _ponnie$Component4);
+var PromoCodeWidget = function (_ponnie$Component5) {
+  _inherits(PromoCodeWidget, _ponnie$Component5);
 
   function PromoCodeWidget() {
     _classCallCheck(this, PromoCodeWidget);
@@ -768,7 +839,7 @@ var PromoCodeWidget = function (_ponnie$Component4) {
   }
 
   _createClass(PromoCodeWidget, [{
-    key: 'validate',
+    key: "validate",
     value: function validate(e) {
 
       this.update({
@@ -782,63 +853,63 @@ var PromoCodeWidget = function (_ponnie$Component4) {
       e.preventDefault();
     }
   }, {
-    key: 'removePromocode',
+    key: "removePromocode",
     value: function removePromocode() {
-      var _this6 = this;
+      var _this7 = this;
 
       var confirm = new Confirm('Remove?');
 
       confirm.on('confirm', function (e) {
-        _this6.update({
+        _this7.update({
           promocode: null
         });
       });
     }
   }, {
-    key: 'render',
+    key: "render",
     value: function render() {
 
       if (this.data.promocode) {
         return _ponnie2.default.vnode(
-          'div',
-          { 'class': 'gift-code' },
+          "div",
+          { "class": "gift-code" },
           _ponnie2.default.vnode(
-            'div',
-            { 'class': 'gift-code-title' },
-            'Gift code:'
+            "div",
+            { "class": "gift-code-title" },
+            "Gift code:"
           ),
           _ponnie2.default.vnode(
-            'div',
-            { 'class': 'gift-code-active' },
+            "div",
+            { "class": "gift-code-active" },
             _ponnie2.default.vnode(
-              'div',
+              "div",
               null,
               this.data.promocode
             ),
             _ponnie2.default.vnode(
-              'button',
-              { 'class': 'gift-code-remove-btn', 'p-click': this.removePromocode },
-              'Remove'
+              "button",
+              { "class": "gift-code-remove-btn", "p-click": this.removePromocode },
+              "Remove"
             )
           )
         );
       }
 
       return _ponnie2.default.vnode(
-        'div',
-        { 'class': 'gift-code' },
+        "div",
+        { "class": "gift-code" },
         _ponnie2.default.vnode(
-          'div',
-          { 'class': 'gift-code-title' },
-          'Gift code:'
+          "div",
+          { "class": "gift-code-title" },
+          "Gift code:"
         ),
         _ponnie2.default.vnode(
-          'div',
-          { 'class': 'gift-code-input' },
+          "div",
+          { "class": "gift-code-input" },
           _ponnie2.default.vnode(
-            'form',
-            { 'p-submit': this.validate },
-            _ponnie2.default.vnode('input', { type: 'text', 'p-ref': 'input' })
+            "form",
+            { "p-submit": this.validate },
+            _ponnie2.default.vnode("input", { type: "text", "p-ref": "input" })
           )
         )
       );
@@ -848,8 +919,8 @@ var PromoCodeWidget = function (_ponnie$Component4) {
   return PromoCodeWidget;
 }(_ponnie2.default.Component);
 
-var Cart = function (_ponnie$Component5) {
-  _inherits(Cart, _ponnie$Component5);
+var Cart = function (_ponnie$Component6) {
+  _inherits(Cart, _ponnie$Component6);
 
   function Cart() {
     _classCallCheck(this, Cart);
@@ -861,7 +932,7 @@ var Cart = function (_ponnie$Component5) {
   }
 
   _createClass(Cart, [{
-    key: 'promocodeChanged',
+    key: "promocodeChanged",
     value: function promocodeChanged(e) {
       this.data.changes.push(e.promocode);
       this.update({
@@ -869,19 +940,19 @@ var Cart = function (_ponnie$Component5) {
       });
     }
   }, {
-    key: 'render',
+    key: "render",
     value: function render() {
       return _ponnie2.default.vnode(
-        'div',
+        "div",
         null,
         this.data.changes.map(function (change) {
           return _ponnie2.default.vnode(
-            'div',
+            "div",
             null,
             change
           );
         }),
-        _ponnie2.default.vnode('promo-code-widget', { promocode: this.data.promocode, 'p-change': this.promocodeChanged })
+        _ponnie2.default.vnode("promo-code-widget", { promocode: this.data.promocode, "p-change": this.promocodeChanged })
       );
     }
   }]);
@@ -891,10 +962,58 @@ var Cart = function (_ponnie$Component5) {
 
 _ponnie2.default.register('promo-code-widget', PromoCodeWidget);
 
+//let search = new Search(document.getElementById('my-input'), document.getElementById('autosuggest-socket'));
+
 var cart = new Cart();
 _ponnie2.default.mount(cart, document.body);
 
 var list = new TodoList();
 _ponnie2.default.mount(list, document.body);
+
+var autosuggest = new AutoSuggest();
+_ponnie2.default.mount(autosuggest, document.body);
+
+setTimeout(function () {
+
+  autosuggest.update({
+    genres: [],
+    artists: [{
+      id: 369,
+      name: 'Tesseract',
+      url: 'beta/tesseract/'
+    }, {
+      id: 379,
+      name: 'Terrell Drayton',
+      url: 'beta/terrell-drayton/'
+    }, {
+      id: 101,
+      name: 'fdfdfd Drayfdfdfdfton',
+      url: 'beta/terrefdddll-drayton/'
+    }],
+    releases: []
+  });
+}, 500);
+
+setTimeout(function () {
+
+  autosuggest.update({
+    genres: [],
+    artists: [{
+      id: 369,
+      name: 'Tesseract',
+      url: 'beta/tesseract/'
+    }],
+    releases: []
+  });
+}, 2000);
+
+setTimeout(function () {
+
+  autosuggest.update({
+    genres: [],
+    artists: [],
+    releases: []
+  });
+}, 4000);
 
 },{"../dist/lib/ponnie":2}]},{},[6]);
