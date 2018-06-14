@@ -3,5 +3,8 @@
     ["env", {
       "modules": "commonjs"
     }]
+  ],
+  "plugins": [
+    ["transform-react-jsx", {pragma: "ponnie.vnode"}]
   ]
 }

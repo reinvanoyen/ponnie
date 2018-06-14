@@ -4,14 +4,11 @@ import vnode from "./vnode";
 import { TagRegistry } from "./registry";
 import Component from "./component";
 
-const ponnie = {
-  Component: Component,
-  register: TagRegistry.add.bind(TagRegistry),
-  mount: (component, htmlEl) => {
-    htmlEl.appendChild(component.createElement());
-    component.trigger('mount');
-  },
-  vnode: vnode
+const register = TagRegistry.add.bind(TagRegistry);
+
+const mount = (component, htmlEl) => {
+  htmlEl.appendChild(component.createElement());
+  component.trigger('mount');
 };
 
-export default ponnie;
+export { Component, register, mount, vnode };
